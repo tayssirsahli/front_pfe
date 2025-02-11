@@ -1,45 +1,31 @@
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { useEffect, useState } from 'react';
+import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { ThumbsUp, MessageSquare, Share2, Bookmark } from 'lucide-react';
 
-const posts = [
-  {
-    id: 1,
-    user: {
-      name: 'Sarah Johnson',
-      avatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=64&h=64&fit=crop&crop=faces',
-      initials: 'SJ',
-    },
-    content: 'Just saved this amazing article about AI trends in 2024. The insights about machine learning in healthcare are fascinating! #AI #Healthcare #Innovation',
-    timestamp: '2 hours ago',
-    likes: 24,
-    comments: 5,
-    shares: 3,
-    source: 'LinkedIn',
-  },
-  {
-    id: 2,
-    user: {
-      name: 'Michael Chen',
-      avatar: 'https://images.unsplash.com/photo-1599566150163-29194dcaad36?w=64&h=64&fit=crop&crop=faces',
-      initials: 'MC',
-    },
-    content: 'Great thread on sustainable business practices. Saving this for future reference. The part about carbon neutrality strategies is particularly relevant. #Sustainability #Business',
-    timestamp: '4 hours ago',
-    likes: 18,
-    comments: 3,
-    shares: 2,
-    source: 'Twitter',
-  },
-];
+interface Post {
+  id: number;
+  user_id: number;
+  created_at: string;
+  generated_text: string;
+}
 
 export default function PostsFeed() {
+  const [posts, setPosts] = useState<Post[]>([]);
+
+  useEffect(() => {
+    fetch('http://localhost:5000/generated-idea')
+      .then((response) => response.json())
+      .then((data) => setPosts(data))
+      .catch((error) => console.error('Error fetching data:', error));
+  }, []);
+
   return (
     <div className="space-y-8">
       <div className="flex items-center justify-between">
-        <h1 className="text-3xl font-bold">Posts Feed</h1>
+        <h1 className="text-3xl font-bold">Generated Ideas</h1>
         <Button>Share an Idea</Button>
       </div>
 
@@ -49,35 +35,32 @@ export default function PostsFeed() {
             <CardContent className="grid gap-4 p-6">
               <div className="flex items-start space-x-4">
                 <Avatar>
-                  <AvatarImage src={post.user.avatar} />
-                  <AvatarFallback>{post.user.initials}</AvatarFallback>
+                  <AvatarFallback>U</AvatarFallback>
                 </Avatar>
                 <div className="flex-1 space-y-1">
                   <div className="flex items-center space-x-2">
-                    <p className="font-semibold">{post.user.name}</p>
+                    {/*                     <p className="font-semibold">User {post.user_id}</p>
+ */}
+                    <p className="font-semibold">created_at </p>
                     <span className="text-sm text-muted-foreground">·</span>
-                    <span className="text-sm text-muted-foreground">{post.timestamp}</span>
+                    <span className="text-sm text-muted-foreground">{new Date(post.created_at).toLocaleString()}</span>
                   </div>
-                  <Badge variant="outline">{post.source}</Badge>
+                  <Badge variant="outline">Generated Idea</Badge>
                 </div>
               </div>
-              <p className="text-sm">{post.content}</p>
+              <p className="text-sm">{post.generated_text}</p>
               <div className="flex items-center space-x-4">
                 <Button variant="ghost" size="sm">
-                  <ThumbsUp className="mr-2 h-4 w-4" />
-                  {post.likes}
+                  <ThumbsUp className="mr-2 h-4 w-4" /> Like
                 </Button>
                 <Button variant="ghost" size="sm">
-                  <MessageSquare className="mr-2 h-4 w-4" />
-                  {post.comments}
+                  <MessageSquare className="mr-2 h-4 w-4" /> Comment
                 </Button>
                 <Button variant="ghost" size="sm">
-                  <Share2 className="mr-2 h-4 w-4" />
-                  {post.shares}
+                  <Share2 className="mr-2 h-4 w-4" /> Share
                 </Button>
                 <Button variant="ghost" size="sm">
-                  <Bookmark className="mr-2 h-4 w-4" />
-                  Save
+                  <Bookmark className="mr-2 h-4 w-4" /> Save
                 </Button>
               </div>
             </CardContent>
