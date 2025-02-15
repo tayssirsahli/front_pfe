@@ -4,8 +4,44 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { Settings, User, Bell, Shield } from 'lucide-react';
+import { useEffect } from 'react';
 
 export default function Profile() {
+
+  const fetchLinkedInProfile = async () => {
+    const token = localStorage.getItem('linkedin_token');
+    console.log("Token LinkedIn récupéré :", token); // Vérifie si le token est bien présent
+  
+    if (!token) {
+      console.error("Aucun token trouvé !");
+      return;
+    }
+  
+    try {
+      const response = await fetch('http://localhost:5000/linkedin/profile', {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+  
+      if (!response.ok) {
+        throw new Error(`Erreur API: ${response.status}`);
+      }
+  
+      const data = await response.json();
+      console.log('Profil LinkedIn:', data);
+    } catch (error) {
+      console.error('Erreur lors de la récupération du profil:', error);
+    }
+  };
+  
+
+  useEffect(() => {
+    fetchLinkedInProfile();
+  }, []);
+
+
+
   return (
     <div className="space-y-8">
       <div className="flex items-center justify-between">

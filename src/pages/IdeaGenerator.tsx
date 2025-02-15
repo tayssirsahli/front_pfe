@@ -55,7 +55,7 @@ export default function IdeaGenerator() {
 
     // Concaténer les textes sélectionnés et l'input utilisateur
     const selectedText = selectedIdeas.map((idea) => idea.selected_text).join(' ');
-    const finalMessage = `${selectedText} ${userInput}`.trim();
+    const finalMessage = `${userInput} ${selectedText} `.trim();
 
     const payload = { message: finalMessage };
 

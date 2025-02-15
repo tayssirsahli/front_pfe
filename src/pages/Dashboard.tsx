@@ -1,6 +1,7 @@
+import { useEffect, useState } from 'react';
+import axios from 'axios';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 
 const chartData = [
@@ -49,6 +50,45 @@ const CustomTooltip = ({ active, payload, label }: any) => {
 };
 
 export default function Dashboard() {
+  const [scrapedDataCount, setScrapedDataCount] = useState<number | null>(null);
+  const [generatedIdeaCount, setGeneratedIdeaCount] = useState<number | null>(null);
+
+  useEffect(() => {
+
+
+    const urlParams = new URLSearchParams(window.location.search);
+    const token = urlParams.get('token');
+
+    if (token) {
+      localStorage.setItem('linkedin_token', token);
+
+      window.location.href = '/posts-feed';
+    }
+    const fetchCounts = async () => {
+      try {
+        const [scrapedDataRes, generatedIdeaRes] = await Promise.all([
+          axios.get('http://localhost:5000/scraped-data/count'),
+          axios.get('http://localhost:5000/generated-idea/count'),
+        ]);
+
+        // Vérifiez ce que contient la réponse
+        console.log('Scraped Data Count:', scrapedDataRes.data);
+        console.log('Generated Idea Count:', generatedIdeaRes.data);
+
+        setScrapedDataCount(scrapedDataRes.data); // Assurez-vous que la réponse est un nombre
+        setGeneratedIdeaCount(generatedIdeaRes.data); // Assurez-vous que la réponse est un nombre
+
+      } catch (error) {
+        console.error('Error fetching counts:', error);
+      }
+    };
+
+    fetchCounts();
+  }, []);
+
+
+
+
   return (
     <div className="space-y-8">
       <div className="flex items-center justify-between">
@@ -62,7 +102,9 @@ export default function Dashboard() {
             <CardTitle className="text-sm font-medium">Total Ideas</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">248</div>
+            <div className="text-2xl font-bold">
+              {scrapedDataCount !== null ? scrapedDataCount : 'Loading...'}
+            </div>
             <p className="text-xs text-muted-foreground">+20% from last month</p>
           </CardContent>
         </Card>
@@ -71,7 +113,9 @@ export default function Dashboard() {
             <CardTitle className="text-sm font-medium">Generated Content</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">52</div>
+            <div className="text-2xl font-bold">
+              {generatedIdeaCount !== null ? generatedIdeaCount : 'Loading...'}
+            </div>
             <p className="text-xs text-muted-foreground">+12 this week</p>
           </CardContent>
         </Card>
@@ -93,25 +137,10 @@ export default function Dashboard() {
           </CardHeader>
           <CardContent className="h-[300px]">
             <ResponsiveContainer width="100%" height="100%">
-              <LineChart
-                data={chartData}
-                margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
-              >
+              <LineChart data={chartData} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                <XAxis
-                  dataKey="name"
-                  stroke="hsl(var(--muted-foreground))"
-                  fontSize={12}
-                  tickLine={false}
-                  axisLine={false}
-                />
-                <YAxis
-                  stroke="hsl(var(--muted-foreground))"
-                  fontSize={12}
-                  tickLine={false}
-                  axisLine={false}
-                  tickFormatter={(value) => `${value}`}
-                />
+                <XAxis dataKey="name" stroke="hsl(var(--muted-foreground))" fontSize={12} tickLine={false} axisLine={false} />
+                <YAxis stroke="hsl(var(--muted-foreground))" fontSize={12} tickLine={false} axisLine={false} tickFormatter={(value) => `${value}`} />
                 <Tooltip content={<CustomTooltip />} />
                 <Line
                   type="monotone"

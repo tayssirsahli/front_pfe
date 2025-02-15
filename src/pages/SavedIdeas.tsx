@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Grid, List, Filter } from 'lucide-react';
 import axios from 'axios';
+import { CreatePostDialog } from '@/components/CreatePostDialog';
 
 interface Idea {
   id: string;
@@ -113,6 +114,7 @@ export default function SavedIdeas() {
                   <Button variant="outline" size="sm" onClick={() => handleSeeMoreDetails(idea)}>
                     See more details
                   </Button>
+
                 </div>
                 <p className="text-sm text-muted-foreground">
                   {idea.selected_text.length > 150 ? idea.selected_text.slice(0, 150) + '...' : idea.selected_text}
