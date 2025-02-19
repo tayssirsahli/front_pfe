@@ -26,6 +26,8 @@ export default function IdeaGenerator() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [generating, setGenerating] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1); // Page actuelle
+  const itemsPerPage = 4; // Nombre d'items par page
 
   useEffect(() => {
     fetch('http://localhost:5000/scraped-data')
@@ -104,6 +106,7 @@ export default function IdeaGenerator() {
 
       if (res.ok) {
         const data = await res.json();
+        setResponse(data.response);
         setResponse('Content saved successfully!');
         setStep(1); // Réinitialiser l'étape après sauvegarde
         setSelectedIdeas([]); // Réinitialiser la sélection
@@ -117,6 +120,12 @@ export default function IdeaGenerator() {
       setLoading(false);
     }
   };
+
+  // Calculer les idées à afficher pour la page actuelle
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const currentIdeas = ideas.slice(startIndex, startIndex + itemsPerPage);
+
+  const totalPages = Math.ceil(ideas.length / itemsPerPage); // Calculer le nombre total de pages
 
   return (
     <div className="space-y-8">
@@ -138,7 +147,7 @@ export default function IdeaGenerator() {
             <CardTitle>Select Ideas to Combine</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            {ideas.map((idea) => (
+            {currentIdeas.map((idea) => (
               <div key={idea.id} className="flex items-center space-x-4">
                 <Checkbox
                   id={`idea-${idea.id}`}
@@ -152,6 +161,22 @@ export default function IdeaGenerator() {
                 </div>
               </div>
             ))}
+            <div className="flex justify-center items-center mt-4 w-full">
+              <Button
+                variant="outline"
+                onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
+                disabled={currentPage === 1}
+              >
+                Previous
+              </Button>
+              <Button
+                variant="outline"
+                onClick={() => setCurrentPage((prev) => Math.min(prev + 1, totalPages))}
+                disabled={currentPage === totalPages}
+              >
+                Next
+              </Button>
+            </div>
             <Button onClick={() => setStep(2)} className="mt-4">
               Next: Add Context
             </Button>

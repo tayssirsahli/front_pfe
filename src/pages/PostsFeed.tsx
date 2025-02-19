@@ -17,11 +17,14 @@ export default function PostsFeed() {
   const [posts, setPosts] = useState<Post[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
+  
+  const [currentPage, setCurrentPage] = useState(1); // Page actuelle
+  const postsPerPage = 3; // Nombre de posts par page
 
   const fetchPosts = () => {
     setIsLoading(true);
     setError(null);
-    
+
     fetch('http://localhost:5000/generated-idea')
       .then((response) => response.json())
       .then((data) => {
@@ -39,6 +42,13 @@ export default function PostsFeed() {
     fetchPosts();
   }, []);
 
+  // Calculer les posts à afficher pour la page actuelle
+  const indexOfLastPost = currentPage * postsPerPage;
+  const indexOfFirstPost = indexOfLastPost - postsPerPage;
+  const currentPosts = posts.slice(indexOfFirstPost, indexOfLastPost);
+
+  const totalPages = Math.ceil(posts.length / postsPerPage); // Total de pages
+
   return (
     <div className="space-y-8">
       <div className="flex items-center justify-between">
@@ -52,45 +62,67 @@ export default function PostsFeed() {
       {error && <p className="text-center text-red-500">{error}</p>}
 
       {!isLoading && !error && (
-        <div className="grid gap-4">
-          {posts.map((post) => (
-            <Card key={post.id}>
-              <CardContent className="grid gap-4 p-6">
-                <div className="flex items-start space-x-4">
-                  <Avatar>
-                    <AvatarFallback>{post.user_id ? post.user_id.toString().charAt(0) : 'U'}</AvatarFallback>
-                  </Avatar>
-                  <div className="flex-1 space-y-1">
-                    <div className="flex items-center space-x-2">
-                      <p className="font-semibold">Published on</p>
-                      <span className="text-sm text-muted-foreground">·</span>
-                      <span className="text-sm text-muted-foreground">
-                        {new Date(post.created_at).toLocaleString()}
-                      </span>
+        <>
+          <div className="grid gap-4">
+            {currentPosts.map((post) => (
+              <Card key={post.id}>
+                <CardContent className="grid gap-4 p-6">
+                  <div className="flex items-start space-x-4">
+                    <Avatar>
+                      <AvatarFallback>{post.user_id ? post.user_id.toString().charAt(0) : 'U'}</AvatarFallback>
+                    </Avatar>
+                    <div className="flex-1 space-y-1">
+                      <div className="flex items-center space-x-2">
+                        <p className="font-semibold">Published on</p>
+                        <span className="text-sm text-muted-foreground">·</span>
+                        <span className="text-sm text-muted-foreground">
+                          {new Date(post.created_at).toLocaleString()}
+                        </span>
+                      </div>
+                      <Badge variant="outline">Generated Idea</Badge>
                     </div>
-                    <Badge variant="outline">Generated Idea</Badge>
+                    <CreatePostDialog initialContent={post.generated_text} />
                   </div>
-                  <CreatePostDialog initialContent={post.generated_text} />
-                </div>
-                <p className="text-sm">{post.generated_text}</p>
-                <div className="flex items-center space-x-4">
-                  <Button variant="ghost" size="sm">
-                    <ThumbsUp className="mr-2 h-4 w-4" /> Like
-                  </Button>
-                  <Button variant="ghost" size="sm">
-                    <MessageSquare className="mr-2 h-4 w-4" /> Comment
-                  </Button>
-                  <Button variant="ghost" size="sm">
-                    <Share2 className="mr-2 h-4 w-4" /> Share
-                  </Button>
-                  <Button variant="ghost" size="sm">
-                    <Bookmark className="mr-2 h-4 w-4" /> Save
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
+                  <p className="text-sm">{post.generated_text}</p>
+                  <div className="flex items-center space-x-4">
+                    <Button variant="ghost" size="sm">
+                      <ThumbsUp className="mr-2 h-4 w-4" /> Like
+                    </Button>
+                    <Button variant="ghost" size="sm">
+                      <MessageSquare className="mr-2 h-4 w-4" /> Comment
+                    </Button>
+                    <Button variant="ghost" size="sm">
+                      <Share2 className="mr-2 h-4 w-4" /> Share
+                    </Button>
+                    <Button variant="ghost" size="sm">
+                      <Bookmark className="mr-2 h-4 w-4" /> Save
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+
+          {/* Pagination */}
+          <div className="flex justify-center items-center mt-4 w-full">
+          <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
+              disabled={currentPage === 1}
+            >
+              Previous
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setCurrentPage((prev) => Math.min(prev + 1, totalPages))}
+              disabled={currentPage === totalPages}
+            >
+              Next
+            </Button>
+          </div>
+        </>
       )}
     </div>
   );

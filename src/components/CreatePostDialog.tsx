@@ -19,6 +19,7 @@ export function CreatePostDialog({ initialContent = '' }: CreatePostDialogProps)
   const [postContent, setPostContent] = useState(initialContent);
   const [showLinkInput, setShowLinkInput] = useState(false);
   const [linkUrl, setLinkUrl] = useState('');
+  const [imageUrl, setImageUrl] = useState<string | null>(null);  // Gérer l'URL de l'image uploadée
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [accessToken, setAccessToken] = useState<string | null>(null);
 
@@ -49,9 +50,15 @@ export function CreatePostDialog({ initialContent = '' }: CreatePostDialogProps)
     }
 
     try {
+
+
       await axios.post(
         'http://localhost:5000/linkedin/post',
-        { content: postContent },
+        {
+          content: postContent,
+          imageUrl: imageUrl
+
+        },
         { headers: { Authorization: `Bearer ${accessToken}` } }
       );
       alert('Post publié avec succès !');
@@ -60,12 +67,31 @@ export function CreatePostDialog({ initialContent = '' }: CreatePostDialogProps)
     }
   };
 
-
-
-  const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImageUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
+
     if (file) {
-      setPostContent((prev) => `${prev}\n[Image: ${file.name}]`);
+      const formData = new FormData();
+      formData.append('image', file);  // 'image' correspond au nom attendu côté backend
+
+      try {
+        const response = await axios.post('http://localhost:5000/generated-idea/upload-image', formData, {
+          headers: {
+            'Content-Type': 'multipart/form-data',
+          },
+        });
+
+        const uploadedImageUrl = response.data.url;  // L'URL du fichier image
+
+        if (uploadedImageUrl) {
+          setImageUrl(uploadedImageUrl);  // Mettre à jour l'URL de l'image
+          setPostContent((prev) => `${prev}\n![Image](${uploadedImageUrl})`);  // Ajoute l'URL de l'image au contenu du post
+        } else {
+          console.error('L\'URL de l\'image est indéfinie');
+        }
+      } catch (error) {
+        console.error('Erreur lors de l\'upload de l\'image:', error);
+      }
     }
   };
 
@@ -107,6 +133,19 @@ export function CreatePostDialog({ initialContent = '' }: CreatePostDialogProps)
               value={postContent}
               onChange={(e) => setPostContent(e.target.value)}
             />
+            <div>
+            {imageUrl ? (
+                <img
+                  src={`http://localhost:5000${imageUrl}`}  // Utilise l'URL de ton serveur pour accéder à l'image
+                  alt="Uploaded content"
+                  className="mt-2 max-w-full border rounded-lg shadow-md"
+                />
+              ) : (
+                <p className="mt-2 text-gray-500">Aucune image téléchargée</p>
+              )}
+            </div>
+
+
           </div>
         </div>
         <div className="flex items-center justify-between pt-4">
