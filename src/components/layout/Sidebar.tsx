@@ -7,7 +7,7 @@ import {
   Sparkles,
   Rss,
   BookMarked,
-  Settings,
+  Calendar,
 } from 'lucide-react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 
@@ -23,8 +23,9 @@ export default function Sidebar({ isOpen }: SidebarProps) {
     { icon: LayoutDashboard, label: 'Dashboard', path: '/' },
     { icon: BookMarked, label: 'Saved Ideas', path: '/saved-ideas' },
     { icon: Sparkles, label: 'Idea Generator', path: '/idea-generator' },
-    { icon: Rss, label: 'Posts Feed', path: '/posts-feed' },
-    { icon: Settings, label: 'Settings', path: '/settings' },
+    { icon: Rss, label: 'Generated Posts', path: '/posts-feed' },
+    { icon: Calendar, label: 'Scheduled Posts', path: 'calendar' },
+
   ];
 
 
@@ -59,7 +60,7 @@ export default function Sidebar({ isOpen }: SidebarProps) {
             ))}
           </div>
 
-         
+
         </nav>
       </ScrollArea>
     </div>

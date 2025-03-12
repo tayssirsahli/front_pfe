@@ -1,17 +1,10 @@
 import { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
-import { Menu, Search, Bell, User } from 'lucide-react';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { Menu, Bell, User, Sun, Moon } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { useTheme } from '@/components/theme-provider';
 
 interface TopbarProps {
   toggleSidebar: () => void;
@@ -19,15 +12,15 @@ interface TopbarProps {
 
 export default function Topbar({ toggleSidebar }: TopbarProps) {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
-  const [userEmail, setUserEmail] = useState<string | null>(null);
+  const [profileImageUrl, setProfileImageUrl] = useState('');
+  const [userName, setUserName] = useState<string | null>(null);
   const navigate = useNavigate();
+  const { theme, setTheme } = useTheme();
 
-  // Fonction pour récupérer les données de l'utilisateur
   const fetchUserData = async () => {
-    const token = localStorage.getItem("token");
-
+    const token = localStorage.getItem("access_token");
     if (!token) {
-      setIsLoggedIn(false); // Si pas de token, l'utilisateur est déconnecté
+      setIsLoggedIn(false);
       return;
     }
 
@@ -36,39 +29,54 @@ export default function Topbar({ toggleSidebar }: TopbarProps) {
         method: "GET",
         headers: {
           "Authorization": `Bearer ${token}`,
-          "Content-Type": "application/json"
-        }
+          "Content-Type": "application/json",
+        },
       });
 
+      if (response.status === 401) {
+        localStorage.removeItem("access_token");
+        setIsLoggedIn(false);
+        navigate('/signin');
+        return;
+      }
+
       const data = await response.json();
-      if (data && data.email) {
-        setUserEmail(data.email); // Met à jour l'email de l'utilisateur
-        setIsLoggedIn(true); // Utilisateur connecté
+      if (data?.id) {
+        setUserName(data.raw_user_meta_data.username);
+        setProfileImageUrl(data.raw_user_meta_data.avatar_url || '');
+        setIsLoggedIn(true);
       }
     } catch (error) {
-      console.error("Error fetching user data:", error);
+      console.error("Erreur lors de la récupération des données utilisateur:", error);
     }
   };
 
-  // Fonction de déconnexion
   const handleLogout = async () => {
     try {
-      await fetch('http://localhost:5000/auth/sign-out', {
+      const response = await fetch('http://localhost:5000/auth/sign-out', {
         method: 'POST',
+        credentials: 'include',
       });
 
-      localStorage.removeItem("token"); // Supprimer le token
-      setIsLoggedIn(false); // Mettre à jour le statut de connexion
-      alert("Vous êtes maintenant déconnecté !");
-      navigate('/signin'); // Rediriger vers la page de connexion
+      if (response.ok) {
+        localStorage.removeItem("access_token");
+        setIsLoggedIn(false);
+        alert("Vous êtes maintenant déconnecté !");
+        navigate('/signin');
+      } else {
+        console.error("Erreur lors de la déconnexion:", response.status);
+      }
     } catch (error) {
       console.error('Erreur de déconnexion:', error);
     }
   };
 
-  // Récupérer les données de l'utilisateur au chargement du composant
   useEffect(() => {
     fetchUserData();
+
+    const intervalId = setInterval(fetchUserData, 60000); 
+
+    return () => clearInterval(intervalId); 
   }, []);
 
   return (
@@ -78,14 +86,15 @@ export default function Topbar({ toggleSidebar }: TopbarProps) {
           <Menu className="h-5 w-5" />
         </Button>
 
-        <div className="ml-4 flex flex-1 items-center space-x-4">
-          <div className="relative w-96">
-            <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-            <Input placeholder="Search ideas..." className="pl-8" />
-          </div>
-        </div>
-
         <div className="ml-auto flex items-center space-x-4">
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => setTheme(theme === "light" ? "dark" : "light")}
+          >
+            {theme === "dark" ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
+          </Button>
+
           <Button variant="ghost" size="icon">
             <Bell className="h-5 w-5" />
           </Button>
@@ -94,13 +103,13 @@ export default function Topbar({ toggleSidebar }: TopbarProps) {
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" className="relative h-8 w-8 rounded-full">
                 <Avatar className="h-8 w-8">
-                  <AvatarImage src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=64&h=64&fit=crop&crop=faces" />
-                  <AvatarFallback>JS</AvatarFallback>
+                  <AvatarImage src={profileImageUrl} />
+                  <AvatarFallback>{userName?.charAt(0).toUpperCase() || "U"}</AvatarFallback>
                 </Avatar>
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
-              <DropdownMenuLabel>{isLoggedIn ? userEmail : "My Account"}</DropdownMenuLabel>
+              <DropdownMenuLabel>{isLoggedIn ? userName : "My Account"}</DropdownMenuLabel>
               <DropdownMenuSeparator />
               {isLoggedIn && (
                 <Link to="/profile">

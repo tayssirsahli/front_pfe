@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Textarea } from '@/components/ui/textarea';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 
 interface Idea {
   id: string;
@@ -26,7 +27,8 @@ export default function IdeaGenerator() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [generating, setGenerating] = useState(false);
-  const [currentPage, setCurrentPage] = useState(1); // Page actuelle
+  const [currentPage, setCurrentPage] = useState(1);
+  const [isSuccessModalOpen, setIsSuccessModalOpen] = useState(false); // Success modal state
   const itemsPerPage = 4; // Nombre d'items par page
 
   useEffect(() => {
@@ -96,7 +98,6 @@ export default function IdeaGenerator() {
       generated_text: generatedText,
     };
 
-    console.log('Payload:', JSON.stringify(payload, null, 2));
     try {
       const res = await fetch('http://localhost:5000/generated-idea/add', {
         method: 'POST',
@@ -111,6 +112,7 @@ export default function IdeaGenerator() {
         setStep(1); // Réinitialiser l'étape après sauvegarde
         setSelectedIdeas([]); // Réinitialiser la sélection
         setUserInput(''); // Réinitialiser l'input utilisateur
+        setIsSuccessModalOpen(true); // Open success modal
       } else {
         setError('Failed to save content.');
       }
@@ -235,15 +237,24 @@ export default function IdeaGenerator() {
                 {generating ? <p>Generating...</p> : <p className="text-sm">{response}</p>}
               </div>
             </div>
-            <Button onClick={handleSaveNewContent} className="w-full">Save New Content</Button>
-            <div className="flex space-x-2">
-              <Button variant="outline" onClick={() => setStep(2)}>
-                Back
-              </Button>
-            </div>
+            <Button onClick={handleSaveNewContent} className="mt-4">
+              Save Content
+            </Button>
           </CardContent>
         </Card>
       )}
+
+      <Dialog open={isSuccessModalOpen} onOpenChange={setIsSuccessModalOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Success 🎉!</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <p>Your content has been saved successfully.🚀</p>
+            <Button onClick={() => setIsSuccessModalOpen(false)}>Close</Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

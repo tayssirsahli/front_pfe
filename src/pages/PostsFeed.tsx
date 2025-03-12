@@ -3,8 +3,9 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
-import { ThumbsUp, MessageSquare, Share2, Bookmark, RefreshCcw } from 'lucide-react';
+import { ThumbsUp, MessageSquare, Share2, Bookmark, RefreshCcw, Calendar } from 'lucide-react';
 import { CreatePostDialog } from '@/components/CreatePostDialog';
+import { PlanifierPostDialog } from '@/components/PlanifierPostDialog';
 
 interface Post {
   id: number;
@@ -17,7 +18,7 @@ export default function PostsFeed() {
   const [posts, setPosts] = useState<Post[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
-  
+
   const [currentPage, setCurrentPage] = useState(1); // Page actuelle
   const postsPerPage = 3; // Nombre de posts par page
 
@@ -81,22 +82,16 @@ export default function PostsFeed() {
                       </div>
                       <Badge variant="outline">Generated Idea</Badge>
                     </div>
-                    <CreatePostDialog initialContent={post.generated_text} />
                   </div>
                   <p className="text-sm">{post.generated_text}</p>
                   <div className="flex items-center space-x-4">
-                    <Button variant="ghost" size="sm">
-                      <ThumbsUp className="mr-2 h-4 w-4" /> Like
-                    </Button>
-                    <Button variant="ghost" size="sm">
-                      <MessageSquare className="mr-2 h-4 w-4" /> Comment
-                    </Button>
-                    <Button variant="ghost" size="sm">
-                      <Share2 className="mr-2 h-4 w-4" /> Share
-                    </Button>
-                    <Button variant="ghost" size="sm">
-                      <Bookmark className="mr-2 h-4 w-4" /> Save
-                    </Button>
+                    
+
+                    <PlanifierPostDialog initialContent={post.generated_text} />
+
+                    <CreatePostDialog initialContent={post.generated_text} />
+                    
+
                   </div>
                 </CardContent>
               </Card>
@@ -105,7 +100,7 @@ export default function PostsFeed() {
 
           {/* Pagination */}
           <div className="flex justify-center items-center mt-4 w-full">
-          <Button
+            <Button
               variant="outline"
               size="sm"
               onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}

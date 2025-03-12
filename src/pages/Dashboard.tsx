@@ -4,15 +4,6 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 
-const chartData = [
-  { name: 'Jan', ideas: 4 },
-  { name: 'Feb', ideas: 7 },
-  { name: 'Mar', ideas: 12 },
-  { name: 'Apr', ideas: 15 },
-  { name: 'May', ideas: 18 },
-  { name: 'Jun', ideas: 24 },
-];
-
 const recentIdeas = [
   {
     id: 1,
@@ -52,10 +43,9 @@ const CustomTooltip = ({ active, payload, label }: any) => {
 export default function Dashboard() {
   const [scrapedDataCount, setScrapedDataCount] = useState<number | null>(null);
   const [generatedIdeaCount, setGeneratedIdeaCount] = useState<number | null>(null);
+  const [monthlyGeneratedIdeas, setMonthlyGeneratedIdeas] = useState<any[]>([]);
 
   useEffect(() => {
-
-
     const urlParams = new URLSearchParams(window.location.search);
     const token = urlParams.get('token');
 
@@ -64,6 +54,7 @@ export default function Dashboard() {
 
       window.location.href = '/posts-feed';
     }
+
     const fetchCounts = async () => {
       try {
         const [scrapedDataRes, generatedIdeaRes] = await Promise.all([
@@ -83,11 +74,19 @@ export default function Dashboard() {
       }
     };
 
+    const fetchMonthlyGeneratedIdeas = async () => {
+      try {
+        const response = await axios.get('http://localhost:5000/generated-idea/count-by-month');
+        console.log('Monthly Generated Ideas:', response.data);
+        setMonthlyGeneratedIdeas(response.data); // Remplir les données pour le graphique
+      } catch (error) {
+        console.error('Error fetching monthly generated ideas:', error);
+      }
+    };
+
     fetchCounts();
+    fetchMonthlyGeneratedIdeas();
   }, []);
-
-
-
 
   return (
     <div className="space-y-8">
@@ -137,14 +136,14 @@ export default function Dashboard() {
           </CardHeader>
           <CardContent className="h-[300px]">
             <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={chartData} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
+              <LineChart data={monthlyGeneratedIdeas} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                <XAxis dataKey="name" stroke="hsl(var(--muted-foreground))" fontSize={12} tickLine={false} axisLine={false} />
+                <XAxis dataKey="month" stroke="hsl(var(--muted-foreground))" fontSize={12} tickLine={false} axisLine={false} />
                 <YAxis stroke="hsl(var(--muted-foreground))" fontSize={12} tickLine={false} axisLine={false} tickFormatter={(value) => `${value}`} />
                 <Tooltip content={<CustomTooltip />} />
                 <Line
                   type="monotone"
-                  dataKey="ideas"
+                  dataKey="count"
                   stroke="hsl(var(--primary))"
                   strokeWidth={2}
                   dot={{ fill: "hsl(var(--primary))" }}

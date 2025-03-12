@@ -3,13 +3,11 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { Image, Link as LinkIcon, Smile, Users, Linkedin } from 'lucide-react';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { Input } from '@/components/ui/input';
-import data from '@emoji-mart/data';
-import Picker from '@emoji-mart/react';
+import { Image, Video, Linkedin, Users, Smile, LinkIcon, Share2 } from 'lucide-react';
 import axios from 'axios';
-
+import Picker from '@emoji-mart/react';
+import { Popover, PopoverContent, PopoverTrigger } from '@radix-ui/react-popover';
+import { Input } from './ui/input';
 
 interface CreatePostDialogProps {
   initialContent?: string;
@@ -17,20 +15,19 @@ interface CreatePostDialogProps {
 
 export function CreatePostDialog({ initialContent = '' }: CreatePostDialogProps) {
   const [postContent, setPostContent] = useState(initialContent);
-  const [showLinkInput, setShowLinkInput] = useState(false);
-  const [linkUrl, setLinkUrl] = useState('');
-  const [imageUrl, setImageUrl] = useState<string | null>(null);  // Gérer l'URL de l'image uploadée
+  const [mediaUrls, setMediaUrls] = useState<string[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [accessToken, setAccessToken] = useState<string | null>(null);
+  const [linkUrl, setLinkUrl] = useState('');
+  const [showLinkInput, setShowLinkInput] = useState(false);
+  const [data, setData] = useState<any>(null);
 
   useEffect(() => {
+    import('@emoji-mart/data').then((emojiData) => setData(emojiData.default || emojiData));
     const token = localStorage.getItem('linkedin_token');
     if (token) {
-      localStorage.setItem('linkedin_token', token);
       setAccessToken(token);
       window.history.replaceState({}, document.title, '/');
-    } else {
-      setAccessToken(localStorage.getItem('linkedin_token'));
     }
   }, []);
 
@@ -39,26 +36,20 @@ export function CreatePostDialog({ initialContent = '' }: CreatePostDialogProps)
   };
 
   const handlePostToLinkedIn = async () => {
-    if (accessToken) {
-      localStorage.setItem('linkedin_token', accessToken);
-    }
-
-    console.log('accessToken:', accessToken);
     if (!accessToken) {
       handleLinkedInAuth();
       return;
     }
-
     try {
+      const profileResponse = await axios.get('http://localhost:5000/linkedin/profile', {
+        headers: { Authorization: `Bearer ${accessToken}` }
+      });
+      const userId = profileResponse.data.sub;
 
-
+      console.log('📝 Post mediaUrls:', mediaUrls);
       await axios.post(
         'http://localhost:5000/linkedin/post',
-        {
-          content: postContent,
-          imageUrl: imageUrl
-
-        },
+        { userId, content: postContent, mediaUrls },
         { headers: { Authorization: `Bearer ${accessToken}` } }
       );
       alert('Post publié avec succès !');
@@ -67,41 +58,30 @@ export function CreatePostDialog({ initialContent = '' }: CreatePostDialogProps)
     }
   };
 
-  const handleImageUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-
-    if (file) {
+  const handleMediaUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const files = event.target.files;
+    if (files && files.length > 0) {
       const formData = new FormData();
-      formData.append('image', file);  // 'image' correspond au nom attendu côté backend
+      Array.from(files).forEach((file) => formData.append('media', file));
 
       try {
-        const response = await axios.post('http://localhost:5000/generated-idea/upload-image', formData, {
-          headers: {
-            'Content-Type': 'multipart/form-data',
-          },
+        const response = await axios.post('http://localhost:5000/generated-idea/upload-media', formData, {
+          headers: { 'Content-Type': 'multipart/form-data' },
         });
-
-        const uploadedImageUrl = response.data.url;  // L'URL du fichier image
-
-        if (uploadedImageUrl) {
-          setImageUrl(uploadedImageUrl);  // Mettre à jour l'URL de l'image
-          setPostContent((prev) => `${prev}\n![Image](${uploadedImageUrl})`);  // Ajoute l'URL de l'image au contenu du post
-        } else {
-          console.error('L\'URL de l\'image est indéfinie');
-        }
+        setMediaUrls((prev) => [...prev, ...response.data.urls]);
       } catch (error) {
-        console.error('Erreur lors de l\'upload de l\'image:', error);
+        console.error('Erreur lors de l\'upload :', error);
       }
     }
   };
 
-  const handleEmojiSelect = (emoji: any) => {
-    setPostContent((prev) => prev + emoji.native);
+  const handleDeleteMedia = (url: string) => {
+    setMediaUrls((prev) => prev.filter((mediaUrl) => mediaUrl !== url));
   };
 
-  const handleMentionUser = () => {
-    setPostContent((prev) => `${prev} @user`);
-  };
+  const handleEmojiSelect = (emoji: any) => setPostContent((prev) => prev + emoji.native);
+
+  const handleMentionUser = () => setPostContent((prev) => `${prev} @user`);
 
   const handleAddLink = () => {
     if (linkUrl) {
@@ -114,8 +94,8 @@ export function CreatePostDialog({ initialContent = '' }: CreatePostDialogProps)
   return (
     <Dialog>
       <DialogTrigger asChild>
-        <Button variant="outline" size="sm">
-          Share an Idea
+        <Button size="sm">
+          <Share2 className="mr-2 h-4 w-4" />share 
         </Button>
       </DialogTrigger>
       <DialogContent className="sm:max-w-[525px]">
@@ -123,9 +103,7 @@ export function CreatePostDialog({ initialContent = '' }: CreatePostDialogProps)
           <DialogTitle>Create a post</DialogTitle>
         </DialogHeader>
         <div className="flex items-start space-x-4 pt-4">
-          <Avatar>
-            <AvatarFallback>U</AvatarFallback>
-          </Avatar>
+          <Avatar><AvatarFallback>U</AvatarFallback></Avatar>
           <div className="flex-1">
             <Textarea
               placeholder="What do you want to talk about?"
@@ -133,44 +111,43 @@ export function CreatePostDialog({ initialContent = '' }: CreatePostDialogProps)
               value={postContent}
               onChange={(e) => setPostContent(e.target.value)}
             />
-            <div>
-            {imageUrl ? (
-                <img
-                  src={`http://localhost:5000${imageUrl}`}  // Utilise l'URL de ton serveur pour accéder à l'image
-                  alt="Uploaded content"
-                  className="mt-2 max-w-full border rounded-lg shadow-md"
-                />
-              ) : (
-                <p className="mt-2 text-gray-500">Aucune image téléchargée</p>
-              )}
+            <div className="grid grid-cols-2 gap-2 mt-2 overflow-auto max-h-72">
+              {mediaUrls.map((url, idx) => (
+                <div key={idx} className="relative">
+                  {url.match(/\.(mp4|webm|ogg)$/i) ? (
+                    <video src={`http://localhost:5000${url}`} controls className="mt-2 w-full max-h-64 object-cover rounded-lg shadow-md" />
+                  ) : (
+                    <img src={`http://localhost:5000${url}`} alt="Uploaded media" className="mt-2 w-full max-h-64 object-cover rounded-lg shadow-md" />
+                  )}
+                  <button
+                    className="absolute top-2 right-2  text-black p-1 rounded-full shadow-md "
+                    onClick={() => handleDeleteMedia(url)}
+                  >
+                    X
+                  </button>
+
+                </div>
+              ))}
             </div>
-
-
           </div>
         </div>
-        <div className="flex items-center justify-between pt-4">
+        <div className="flex items-center justify-between pt-4 flex-wrap">
           <div className="flex space-x-2">
             <input
               type="file"
               ref={fileInputRef}
               className="hidden"
-              accept="image/*"
-              onChange={handleImageUpload}
+              accept="image/*,video/*"
+              multiple
+              onChange={handleMediaUpload}
             />
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-9 w-9"
-              onClick={() => fileInputRef.current?.click()}
-            >
+            <Button variant="ghost" size="icon" className="h-9 w-9" onClick={() => fileInputRef.current?.click()}>
               <Image className="h-5 w-5 text-blue-600" />
             </Button>
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-9 w-9"
-              onClick={handleMentionUser}
-            >
+            <Button variant="ghost" size="icon" className="h-9 w-9" onClick={() => fileInputRef.current?.click()}>
+              <Video className="h-5 w-5 text-blue-600" />
+            </Button>
+            <Button variant="ghost" size="icon" className="h-9 w-9" onClick={handleMentionUser}>
               <Users className="h-5 w-5 text-blue-600" />
             </Button>
             <Popover>
@@ -180,12 +157,7 @@ export function CreatePostDialog({ initialContent = '' }: CreatePostDialogProps)
                 </Button>
               </PopoverTrigger>
               <PopoverContent className="w-full p-0" align="start">
-                <Picker
-                  data={data}
-                  onEmojiSelect={handleEmojiSelect}
-                  theme="light"
-                  set="native"
-                />
+                <Picker data={data} onEmojiSelect={handleEmojiSelect} theme="light" set="native" />
               </PopoverContent>
             </Popover>
             <Popover open={showLinkInput} onOpenChange={setShowLinkInput}>
@@ -201,9 +173,7 @@ export function CreatePostDialog({ initialContent = '' }: CreatePostDialogProps)
                     value={linkUrl}
                     onChange={(e) => setLinkUrl(e.target.value)}
                     onKeyDown={(e) => {
-                      if (e.key === 'Enter') {
-                        handleAddLink();
-                      }
+                      if (e.key === 'Enter') handleAddLink();
                     }}
                   />
                   <Button size="sm" onClick={handleAddLink}>Add</Button>
@@ -211,12 +181,8 @@ export function CreatePostDialog({ initialContent = '' }: CreatePostDialogProps)
               </PopoverContent>
             </Popover>
           </div>
-          <div className="flex items-center space-x-2">
-
-            <Button
-              onClick={handlePostToLinkedIn}
-              className="flex items-center space-x-2"
-            >
+          <div className="flex flex-grow justify-end mt-4 sm:mt-0">
+            <Button onClick={handlePostToLinkedIn} className="flex items-center space-x-2">
               <Linkedin className="h-4 w-4" />
               <span>Post to LinkedIn</span>
             </Button>
